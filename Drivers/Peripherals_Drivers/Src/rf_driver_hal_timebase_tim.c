@@ -36,7 +36,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
-#define TIM17_CLK 64000000  /* TIM17 clock is an always 64 MHz */
+#define TIM17_CLK 32000000  /* TIM17 clock is an always 64 MHz */
 
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
@@ -125,7 +125,7 @@ void HAL_ResumeTick(void)
   * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
   * a global variable "uwTick" used as application time base.
   * @param  htim : TIM handle
-  * @retval None
+  * @retval NoneS
   */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {

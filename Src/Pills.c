@@ -45,3 +45,44 @@ void allarm(hour,min){
 				HAL_TIM_PWM_Stop(&htim_pwm, TIM_CHANNEL_1);
 			}
 }
+
+// Riporta il motore alla posizione originale
+void ReturnToZero(){
+	int stop = 0;
+		while(stop == 0){
+			HAL_GPIO_WritePin(STEPPER_PASSO_PORT, STEPPER_PASSO_PIN, GPIO_PIN_SET);
+			HAL_Delay(2);
+			HAL_GPIO_WritePin(STEPPER_PASSO_PORT, STEPPER_PASSO_PIN, GPIO_PIN_RESET);
+			HAL_Delay(2);
+			if (HAL_GPIO_ReadPin(STEPPER_ZERO_PORT, STEPPER_ZERO_PIN)==1){
+				stop = 1;
+			}
+		}
+}
+
+// Rotazione 45°
+void OneCellRotation(){
+	for (int i = 0; i < 25; i++) {
+		HAL_GPIO_WritePin(STEPPER_PASSO_PORT, STEPPER_PASSO_PIN, GPIO_PIN_SET);
+		HAL_Delay(2);
+		HAL_GPIO_WritePin(STEPPER_PASSO_PORT, STEPPER_PASSO_PIN, GPIO_PIN_RESET);
+		HAL_Delay(2);
+	}
+}
+
+// Controllo del contenuto di tutte le celle
+int CellsCheck(cellarray){
+	uint16_t distance;
+	for (int i = 0; i < len(cellarray); i++) {
+			OneCellRotation();
+			distance = vl53l1x_getDistance();
+			if (distance >= 5 && distance <= 30){
+				cellarray[i] = 1;
+			}
+			else {
+				cellarray[i] = 0;
+			}
+		}
+	return cellarray;
+}
+

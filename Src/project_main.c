@@ -82,6 +82,8 @@ uint8_t sec, min, hour;
 uint8_t week_day, day, month, year;
 char str[32];
 uint8_t rec;
+// Pills variables
+int cellstate[7];
 
 /* Private function prototypes -----------------------------------------------*/
 /* Private user code ---------------------------------------------------------*/
@@ -227,8 +229,9 @@ int main(void)
 	}//if
 	//while (1);
 
-	while (1) {
+	ReturnToZero();
 
+	while (1) {
 		/* Power Save Request */
 		//HAL_PWR_MNGR_Request(POWER_SAVE_LEVEL_CPU_HALT, WakeupSourceConfig, &stopLevel);
 
@@ -238,19 +241,28 @@ int main(void)
 		// RTC PRINT DATE TIME
 		rtc_get_time(&hour, &min, &sec);
 		rtc_get_date(&week_day,&day,&month,&year);
-		sprintf(str, "TIME %02d:%02d:%02d\n\r", hour, min, sec);
-		HAL_UART_Transmit(&huart1, str, 32, 1000);
-		sprintf(str, "DATE: %02d/%02d/%02d\n\r", day, month, year);
-		HAL_UART_Transmit(&huart1, str, 32, 1000);
+//		sprintf(str, "TIME %02d:%02d:%02d\n\r", hour, min, sec);
+//		HAL_UART_Transmit(&huart1, str, 32, 1000);
+//		sprintf(str, "DATE: %02d/%02d/%02d\n\r", day, month, year);
+//		HAL_UART_Transmit(&huart1, str, 32, 1000);
 		// END RTC
 
-		//
-		HAL_Delay(100);
-		uint16_t distance = vl53l1x_getDistance();
-		sprintf(str, "DISTANCE: %d\n\r", distance);
-		HAL_UART_Transmit(&huart1, str, 32, 1000);
-
-		allarm(hour,min);
+		cellstate = CellsCheck(cellstate);
+		for (int i = 0; i < len(cellstate); i++) {
+			if (cellstate[i] == 1){
+				sprintf(str, "cella %02d piena", i);
+				HAL_UART_Transmit(&huart1, str, 32, 1000);
+			}
+			else {
+				sprintf(str, "cella %02d vuota", i);
+				HAL_UART_Transmit(&huart1, str, 32, 1000);
+			}
+		}
+//		//
+//		HAL_Delay(100);
+//		uint16_t distance = vl53l1x_getDistance();
+//		sprintf(str, "DISTANCE: %d\n\r", distance);
+//		HAL_UART_Transmit(&huart1, str, 32, 1000);
 		HAL_Delay(1000);
 	}//while
 

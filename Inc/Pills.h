@@ -13,9 +13,12 @@
 #include "pwm.h"
 #include "uart.h"
 #include "rf_driver_hal_tim.h"
+#include "vl53l1x.h"
 
 void allarm();
-
+void ReturnToZero();
+void OneCellRotation();
+int CellsCheck();
 
 
 #endif /* INC_PILLS_H_ */

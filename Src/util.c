@@ -38,19 +38,18 @@ void GPIO_Init_custom(void){
 	//for exti
 	__HAL_RCC_SYSCFG_CLK_ENABLE();
 
+    // Red Led
+	GPIO_InitStruct.Mode=GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pin=LED_RED_PIN;
+	GPIO_InitStruct.Pull=GPIO_NOPULL;
+	GPIO_InitStruct.Speed=GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(LED_RED_PORT,&GPIO_InitStruct);
+	HAL_GPIO_WritePin(LED_RED_PORT, LED_RED_PIN, GPIO_PIN_SET);
 
-	//Red LED
-//	GPIO_InitStruct.Mode=GPIO_MODE_OUTPUT_PP;
-//	GPIO_InitStruct.Pin=LED_RED_PIN;
-//	GPIO_InitStruct.Pull=GPIO_NOPULL;
-//	GPIO_InitStruct.Speed=GPIO_SPEED_FREQ_LOW;
-//	HAL_GPIO_Init(LED_RED_PORT,&GPIO_InitStruct);
-//	HAL_GPIO_WritePin(LED_RED_PORT, LED_RED_PIN, GPIO_PIN_SET);
-//
-//	//Green LED
-//	GPIO_InitStruct.Pin=LED_GREEN_PIN;
-//	HAL_GPIO_Init(LED_GREEN_PORT,&GPIO_InitStruct);
-//	HAL_GPIO_WritePin(LED_GREEN_PORT, LED_GREEN_PIN, GPIO_PIN_SET);
+	//Green LED
+	GPIO_InitStruct.Pin=LED_GREEN_PIN;
+	HAL_GPIO_Init(LED_GREEN_PORT,&GPIO_InitStruct);
+	HAL_GPIO_WritePin(LED_GREEN_PORT, LED_GREEN_PIN, GPIO_PIN_SET);
 
 	//RGB LED
 	GPIO_InitStruct.Pin = BUZZER_PIN;
@@ -60,15 +59,27 @@ void GPIO_Init_custom(void){
 	HAL_GPIO_Init(BUZZER_PORT, &GPIO_InitStruct);
 	HAL_GPIO_WritePin(BUZZER_PORT, BUZZER_PIN, GPIO_PIN_RESET);
 
+	//Stepper Passo
+	GPIO_InitStruct.Pin=STEPPER_PASSO_PIN;
+	HAL_GPIO_Init(STEPPER_PASSO_PORT,&GPIO_InitStruct);
+	HAL_GPIO_WritePin(STEPPER_PASSO_PORT, STEPPER_PASSO_PIN, GPIO_PIN_RESET);
 
-	//Le HAL normali non abilitano l'interrupt
-	//SW1
-	GPIO_InitStruct.Mode=GPIO_MODE_INPUT;
-	GPIO_InitStruct.Pin=SW1_PIN;
-	GPIO_InitStruct.Pull=GPIO_NOPULL;
-	HAL_GPIO_Init(SW1_PORT,&GPIO_InitStruct);
+	//Stepper Reset
+	GPIO_InitStruct.Pin=STEPPER_RST_PIN;
+	HAL_GPIO_Init(STEPPER_RST_PORT,&GPIO_InitStruct);
+	HAL_GPIO_WritePin(STEPPER_RST_PORT, STEPPER_RST_PIN, GPIO_PIN_SET);
 
-	EXTI_Config_InitStructure.Line =    LL_EXTI_LINE_PA10;
+	//Stepper Reset
+	GPIO_InitStruct.Pin=STEPPER_DIR_PIN;
+	HAL_GPIO_Init(STEPPER_DIR_PORT,&GPIO_InitStruct);
+	HAL_GPIO_WritePin(STEPPER_DIR_PORT, STEPPER_DIR_PIN, GPIO_PIN_RESET);
+
+	GPIO_InitStruct.Pin = STEPPER_ZERO_PIN;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+    EXTI_Config_InitStructure.Line =    LL_EXTI_LINE_PA10;
 	EXTI_Config_InitStructure.Trigger = EXTI_TRIGGER_RISING_EDGE;
 	EXTI_Config_InitStructure.Type =    EXTI_TYPE_EDGE;
 
