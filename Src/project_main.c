@@ -247,25 +247,27 @@ int main(void)
 //		HAL_UART_Transmit(&huart1, str, 32, 1000);
 		// END RTC
 
-		cellstate = CellsCheck(cellstate);
-		for (int i = 0; i < len(cellstate); i++) {
+
+
+		CellsCheck(cellstate);
+		for (int i = 0; i < 6; i++) {
 			if (cellstate[i] == 1){
-				sprintf(str, "cella %02d piena", i);
+				sprintf(str, "cella %02d piena \n\r", i);
 				HAL_UART_Transmit(&huart1, str, 32, 1000);
 			}
 			else {
-				sprintf(str, "cella %02d vuota", i);
+				sprintf(str, "cella %02d vuota \n\r", i);
 				HAL_UART_Transmit(&huart1, str, 32, 1000);
 			}
 		}
+		UntangleCable();
 //		//
 //		HAL_Delay(100);
 //		uint16_t distance = vl53l1x_getDistance();
 //		sprintf(str, "DISTANCE: %d\n\r", distance);
 //		HAL_UART_Transmit(&huart1, str, 32, 1000);
-		HAL_Delay(1000);
-	}//while
 
+	}//while
 }//EOR
 
 

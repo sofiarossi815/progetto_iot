@@ -112,6 +112,7 @@ Src/project_main.o: ../Src/project_main.c \
  C:/Users/rossi/OneDrive\ -\ Politecnico\ di\ Bari/Desktop/Progetto\ Iot/EmptyMapper_proj/EmptyMapper_proj/WiSE-Studio/Inc/adc.h \
  C:/Users/rossi/OneDrive\ -\ Politecnico\ di\ Bari/Desktop/Progetto\ Iot/EmptyMapper_proj/EmptyMapper_proj/WiSE-Studio/Inc/Pills.h \
  C:/Users/rossi/OneDrive\ -\ Politecnico\ di\ Bari/Desktop/Progetto\ Iot/EmptyMapper_proj/EmptyMapper_proj/WiSE-Studio/Inc/pwm.h \
+ C:/Users/rossi/OneDrive\ -\ Politecnico\ di\ Bari/Desktop/Progetto\ Iot/EmptyMapper_proj/EmptyMapper_proj/WiSE-Studio/Inc/vl53l1x.h \
  C:/Users/rossi/OneDrive\ -\ Politecnico\ di\ Bari/Desktop/Progetto\ Iot/EmptyMapper_proj/EmptyMapper_proj/WiSE-Studio/Inc/util.h
 
 C:/Users/rossi/OneDrive\ -\ Politecnico\ di\ Bari/Desktop/Progetto\ Iot/EmptyMapper_proj/EmptyMapper_proj/WiSE-Studio/Inc/bluenrg_lps_it.h:
@@ -339,5 +340,7 @@ C:/Users/rossi/OneDrive\ -\ Politecnico\ di\ Bari/Desktop/Progetto\ Iot/EmptyMap
 C:/Users/rossi/OneDrive\ -\ Politecnico\ di\ Bari/Desktop/Progetto\ Iot/EmptyMapper_proj/EmptyMapper_proj/WiSE-Studio/Inc/Pills.h:
 
 C:/Users/rossi/OneDrive\ -\ Politecnico\ di\ Bari/Desktop/Progetto\ Iot/EmptyMapper_proj/EmptyMapper_proj/WiSE-Studio/Inc/pwm.h:
+
+C:/Users/rossi/OneDrive\ -\ Politecnico\ di\ Bari/Desktop/Progetto\ Iot/EmptyMapper_proj/EmptyMapper_proj/WiSE-Studio/Inc/vl53l1x.h:
 
 C:/Users/rossi/OneDrive\ -\ Politecnico\ di\ Bari/Desktop/Progetto\ Iot/EmptyMapper_proj/EmptyMapper_proj/WiSE-Studio/Inc/util.h:

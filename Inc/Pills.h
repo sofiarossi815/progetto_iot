@@ -18,7 +18,8 @@
 void allarm();
 void ReturnToZero();
 void OneCellRotation();
-int CellsCheck();
+void CellsCheck();
+void UntangleCable();
 
 
 #endif /* INC_PILLS_H_ */

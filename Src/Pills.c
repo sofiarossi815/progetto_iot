@@ -71,18 +71,35 @@ void OneCellRotation(){
 }
 
 // Controllo del contenuto di tutte le celle
-int CellsCheck(cellarray){
+void CellsCheck(int  cellarray[]){
+	char str[32];
 	uint16_t distance;
-	for (int i = 0; i < len(cellarray); i++) {
+	for (int i = 0; i < 8; i++) {
 			OneCellRotation();
+			HAL_Delay(2000);
 			distance = vl53l1x_getDistance();
-			if (distance >= 5 && distance <= 30){
+			HAL_Delay(1000);
+			sprintf(str, "DISTANCE: %d\n\r", distance);
+			HAL_UART_Transmit(&huart1, str, 32, 1000);
+			if (distance >= 1 && distance <= 40){
 				cellarray[i] = 1;
 			}
 			else {
 				cellarray[i] = 0;
 			}
+		HAL_Delay(1000);
 		}
-	return cellarray;
 }
 
+void UntangleCable(){
+	HAL_GPIO_WritePin(STEPPER_DIR_PORT, STEPPER_DIR_PIN, GPIO_PIN_SET);
+	HAL_Delay(2);
+	for (int i = 0; i < 200; i++) {
+		HAL_GPIO_WritePin(STEPPER_PASSO_PORT, STEPPER_PASSO_PIN, GPIO_PIN_SET);
+		HAL_Delay(2);
+		HAL_GPIO_WritePin(STEPPER_PASSO_PORT, STEPPER_PASSO_PIN, GPIO_PIN_RESET);
+		HAL_Delay(2);
+	}
+	HAL_GPIO_WritePin(STEPPER_DIR_PORT, STEPPER_DIR_PIN, GPIO_PIN_RESET);
+	HAL_Delay(2);
+}
