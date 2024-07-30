@@ -80,6 +80,8 @@ WakeupSourceConfig_TypeDef WakeupSourceConfig = {0};
 // Variables DS1307
 uint8_t sec, min, hour;
 uint8_t week_day, day, month, year;
+uint8_t test_hour[7] = {18,18,18,18,18,18,18};
+uint8_t test_min[7] = {19,21,23,25,27,28,29};
 char str[32];
 uint8_t rec;
 // Pills variables
@@ -189,6 +191,7 @@ int main(void)
 
 	/* Application Tick */
 	APP_Tick();
+	Clock_Init();
 
 	HAL_MspInit();
 	GPIO_Init_custom();
@@ -199,7 +202,7 @@ int main(void)
 
 	MX_I2Cx_Init();
 	rtc_init(0, 1, 0);
-	rtc_set_time(18, 18, 30);
+	rtc_set_time(18, 18, 0);
 	rtc_set_date(4, 20, 6, 24);
 
 	HAL_Delay(1000);
@@ -211,6 +214,22 @@ int main(void)
 				Error_Handler();
 			}//if
 	}
+	// Appena si accende ritorna alla cella di riferimento (cella piena)
+	ReturnToZero();
+	HAL_Delay(1000);
+	// Esegue un controllo sul contenuto di tutte le celle e se alcune sono ancora piene suona
+	CellsCheck(cellstate);
+	for (int i = 0; i <= 6; i++) {
+		if (cellstate[i] == 1){
+			sprintf(str, "cella %02d piena \n\r", i);
+			HAL_UART_Transmit(&huart1, str, 32, 1000);
+		}
+		else {
+			sprintf(str, "cella %02d vuota \n\r", i);
+			HAL_UART_Transmit(&huart1, str, 32, 1000);
+		}
+	}
+	UntangleCable();
 
 	//Init variables
 	rx_index=0;
@@ -223,13 +242,14 @@ int main(void)
 //		/* PWM Generation Error */
 //		Error_Handler();
 //	}//if
+
 	if (HAL_TIM_PWM_Start(&htim_pwm, TIM_CHANNEL_4) != HAL_OK){
 		/* PWM Generation Error */
 		Error_Handler();
 	}//if
 	//while (1);
 
-	ReturnToZero();
+
 
 	while (1) {
 		/* Power Save Request */
@@ -238,34 +258,31 @@ int main(void)
 //		__HAL_TIM_SET_COMPARE(&htim_pwm, TIM_CHANNEL_4, 500);
 //		HAL_Delay(2);
 
-		// RTC PRINT DATE TIME
+		// Si ottiene l'orario tramite l'RTC
 		rtc_get_time(&hour, &min, &sec);
 		rtc_get_date(&week_day,&day,&month,&year);
-//		sprintf(str, "TIME %02d:%02d:%02d\n\r", hour, min, sec);
-//		HAL_UART_Transmit(&huart1, str, 32, 1000);
-//		sprintf(str, "DATE: %02d/%02d/%02d\n\r", day, month, year);
-//		HAL_UART_Transmit(&huart1, str, 32, 1000);
-		// END RTC
 
+		sprintf(str, "TIME %02d:%02d:%02d\n\r", hour, min, sec);
+		HAL_UART_Transmit(&huart1, str, 32, 1000);
 
+		for (int i = 0; i < 7 ; i++){
 
-		CellsCheck(cellstate);
-		for (int i = 0; i < 6; i++) {
-			if (cellstate[i] == 1){
-				sprintf(str, "cella %02d piena \n\r", i);
-				HAL_UART_Transmit(&huart1, str, 32, 1000);
-			}
-			else {
-				sprintf(str, "cella %02d vuota \n\r", i);
-				HAL_UART_Transmit(&huart1, str, 32, 1000);
+		if (hour == test_hour[i] && min == test_min[i] && sec == 0){
+			HAL_Delay(1100);
+			OneCellRotation();
+			//HAL_Delay(10000);
+		}
+		else if(hour == test_hour[i] && min == test_min[i] && sec != 0){
+				HAL_Delay(500);
+				PillsCheck();
+
 			}
 		}
-		UntangleCable();
-//		//
-//		HAL_Delay(100);
-//		uint16_t distance = vl53l1x_getDistance();
-//		sprintf(str, "DISTANCE: %d\n\r", distance);
-//		HAL_UART_Transmit(&huart1, str, 32, 1000);
+
+
+
+
+
 
 	}//while
 }//EOR

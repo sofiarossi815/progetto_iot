@@ -20,6 +20,7 @@ void ReturnToZero();
 void OneCellRotation();
 void CellsCheck();
 void UntangleCable();
+void PillsCheck();
 
 
 #endif /* INC_PILLS_H_ */
