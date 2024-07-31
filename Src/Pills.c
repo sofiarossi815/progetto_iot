@@ -72,11 +72,11 @@ void ReturnToZero(){
 
 // Rotazione 45°
 void OneCellRotation(){
-	for (int i = 0; i < 25; i++) {
+	for (int j = 0; j < 25; j++) {
 		HAL_GPIO_WritePin(STEPPER_PASSO_PORT, STEPPER_PASSO_PIN, GPIO_PIN_SET);
-		HAL_Delay(2);
+		HAL_Delay(10);
 		HAL_GPIO_WritePin(STEPPER_PASSO_PORT, STEPPER_PASSO_PIN, GPIO_PIN_RESET);
-		HAL_Delay(2);
+		HAL_Delay(10);
 	}
 }
 
@@ -112,4 +112,12 @@ void UntangleCable(){
 	}
 	HAL_GPIO_WritePin(STEPPER_DIR_PORT, STEPPER_DIR_PIN, GPIO_PIN_RESET);
 	HAL_Delay(2);
+}
+
+void LoadingCells(){
+	if (HAL_GPIO_ReadPin(SW2_PORT, SW2_PIN)==1){
+		HAL_Delay(1000);
+		OneCellRotation();
+
+	}
 }

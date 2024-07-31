@@ -21,6 +21,6 @@ void OneCellRotation();
 void CellsCheck();
 void UntangleCable();
 void PillsCheck();
-
+void LoadingCells();
 
 #endif /* INC_PILLS_H_ */

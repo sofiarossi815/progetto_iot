@@ -84,9 +84,14 @@ uint8_t test_hour[7] = {18,18,18,18,18,18,18};
 uint8_t test_min[7] = {19,21,23,25,27,28,29};
 char str[32];
 uint8_t rec;
+
 // Pills variables
 int cellstate[7];
-
+uint8_t n_empty_cell = 0;
+uint8_t n_filled_cell = 0;
+int index_filled_cell[7];
+int index_empty_cell[7];
+char rx_data[32];
 /* Private function prototypes -----------------------------------------------*/
 /* Private user code ---------------------------------------------------------*/
 
@@ -215,21 +220,45 @@ int main(void)
 			}//if
 	}
 	// Appena si accende ritorna alla cella di riferimento (cella piena)
+	HAL_UART_Receive(&huart1, rx_data, 32, 1000000);
+
+	HAL_UART_Transmit(&huart1, rx_data, 32, 1000);
+
 	ReturnToZero();
 	HAL_Delay(1000);
 	// Esegue un controllo sul contenuto di tutte le celle e se alcune sono ancora piene suona
 	CellsCheck(cellstate);
+	int m = 0;
+	int n = 0;
 	for (int i = 0; i <= 6; i++) {
 		if (cellstate[i] == 1){
 			sprintf(str, "cella %02d piena \n\r", i);
 			HAL_UART_Transmit(&huart1, str, 32, 1000);
+			n_filled_cell = n_filled_cell + 1 ;
+			index_filled_cell[m] = i;
+			m = m + 1;
 		}
 		else {
 			sprintf(str, "cella %02d vuota \n\r", i);
 			HAL_UART_Transmit(&huart1, str, 32, 1000);
+			n_empty_cell = n_empty_cell + 1 ;
+			index_empty_cell[n] = i;
+			n = n + 1;
 		}
 	}
 	UntangleCable();
+
+
+	for (int i = 0; i <= 6; i++) {
+			if (cellstate[i] == 0){
+				sprintf(str, "cella %02d piena \n\r", i);
+				HAL_UART_Transmit(&huart1, str, 32, 1000);
+			}
+			else {
+				sprintf(str, "cella %02d vuota \n\r", i);
+				HAL_UART_Transmit(&huart1, str, 32, 1000);
+			}
+		}
 
 	//Init variables
 	rx_index=0;
@@ -265,10 +294,13 @@ int main(void)
 		sprintf(str, "TIME %02d:%02d:%02d\n\r", hour, min, sec);
 		HAL_UART_Transmit(&huart1, str, 32, 1000);
 
+		LoadingCells();
+
+
 		for (int i = 0; i < 7 ; i++){
 
 		if (hour == test_hour[i] && min == test_min[i] && sec == 0){
-			HAL_Delay(1100);
+			HAL_Delay(1500);
 			OneCellRotation();
 			//HAL_Delay(10000);
 		}
