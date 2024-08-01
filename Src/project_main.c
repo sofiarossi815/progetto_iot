@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <time.h>
 #include "bluenrg_lps_it.h"
 #include "ble_const.h"
 
@@ -59,6 +60,15 @@
 /* Private includes ----------------------------------------------------------*/
 #include "util.h"
 /* Private typedef -----------------------------------------------------------*/
+typedef enum _AppStatus {
+	APPSTATUS_INIT = 0,
+	APPSTATUS_RUNNING,
+	APPSTATUS_LOADING_PILLS
+} AppStatus;
+
+#define APPSTATUS_INIT_1 3
+#define APPSTATUS_LOADING_1 4
+
 /* Private define ------------------------------------------------------------*/
 #define BLE_USER_VERSION_STRING /"1.0.0/"
 /* Private macro -------------------------------------------------------------*/
@@ -66,7 +76,7 @@ NO_INIT(uint32_t dyn_alloc_a[DYNAMIC_MEMORY_SIZE>>2]);
 /* Private variables ---------------------------------------------------------*/
 
 volatile uint8_t is_pressed;
-uint8_t rxbuffer[2][UART_RX_BUFF_LEN];
+uint8_t rxbuffer[UART_RX_BUFF_LEN];
 uint8_t rxbuffer_index;
 uint16_t rx_index;
 uint8_t is_rx_finished;
@@ -75,7 +85,6 @@ uint8_t is_tx_finished;
 uint8_t app_buffer[100];			//buffer appoggio
 
 WakeupSourceConfig_TypeDef WakeupSourceConfig = {0};
-
 
 // Variables DS1307
 uint8_t sec, min, hour;
@@ -92,7 +101,14 @@ uint8_t n_filled_cell = 0;
 int index_filled_cell[7];
 int index_empty_cell[7];
 char rx_data[32];
+
+AppStatus appStatus = APPSTATUS_INIT;
+
 /* Private function prototypes -----------------------------------------------*/
+void OnAppStatus_Running_Cycle(void);
+void OnAppStatus_LoadingPills_Cycle(void);
+void LoadCell(uint8_t cell);
+
 /* Private user code ---------------------------------------------------------*/
 
 void ModulesInit(void)
@@ -220,7 +236,6 @@ int main(void)
 			}//if
 	}
 	// Appena si accende ritorna alla cella di riferimento (cella piena)
-	HAL_UART_Receive(&huart1, rx_data, 32, 1000000);
 
 	HAL_UART_Transmit(&huart1, rx_data, 32, 1000);
 
@@ -278,7 +293,11 @@ int main(void)
 	}//if
 	//while (1);
 
+	//Mettiamoci in ascolto per eventuali messaggi
+	HAL_UART_Receive_IT(&huart1, &rxbuffer[rxbuffer_index],1);
 
+	//Abbiamo finito l'inizializzazione. Cambiamo status in RUNNING
+	appStatus = APPSTATUS_RUNNING;
 
 	while (1) {
 		/* Power Save Request */
@@ -287,40 +306,107 @@ int main(void)
 //		__HAL_TIM_SET_COMPARE(&htim_pwm, TIM_CHANNEL_4, 500);
 //		HAL_Delay(2);
 
-		// Si ottiene l'orario tramite l'RTC
-		rtc_get_time(&hour, &min, &sec);
-		rtc_get_date(&week_day,&day,&month,&year);
+		switch(appStatus) {
+		case APPSTATUS_RUNNING:
+			if(is_rx_finished == 1) {
+				if(strcmp(rxbuffer, "LOAD\n") == 0) {
+					appStatus = APPSTATUS_LOADING_PILLS;
+				}
+				UART_ReceiveNextCommand();
+			}
+			//OnAppStatus_Running_Cycle();
+			break;
+		case APPSTATUS_LOADING_PILLS:
+			OnAppStatus_LoadingPills_Cycle();
+			break;
+		default:
+			//Non deve arrivare qui. Altrimenti c'è qualche problema.
+			Error_Handler();
+			break;
+		}
+	}//while
+}//EOR
 
-		sprintf(str, "TIME %02d:%02d:%02d\n\r", hour, min, sec);
-		HAL_UART_Transmit(&huart1, str, 32, 1000);
+void OnAppStatus_Running_Cycle(void) {
+	// Si ottiene l'orario tramite l'RTC
+	rtc_get_time(&hour, &min, &sec);
+	rtc_get_date(&week_day,&day,&month,&year);
 
-		LoadingCells();
+	sprintf(str, "TIME %02d:%02d:%02d\n\r", hour, min, sec);
+	HAL_UART_Transmit(&huart1, str, 32, 1000);
+
+	LoadingCells();
 
 
-		for (int i = 0; i < 7 ; i++){
-
-		if (hour == test_hour[i] && min == test_min[i] && sec == 0){
+	for (int i = 0; i < 7 ; i++){
+		if (hour == test_hour[i] && min == test_min[i] && sec == 0) {
 			HAL_Delay(1500);
 			OneCellRotation();
 			//HAL_Delay(10000);
 		}
-		else if(hour == test_hour[i] && min == test_min[i] && sec != 0){
-				HAL_Delay(500);
-				PillsCheck();
-
-			}
+		else if(hour == test_hour[i] && min == test_min[i] && sec != 0) {
+			HAL_Delay(500);
+			PillsCheck();
 		}
+	}
+}
+
+uint8_t CurrentLoadingCell = 0;
+
+void OnAppStatus_LoadingPills_Cycle(void) {
+	//TODO implementare logica caricamento pillole
+	HAL_Delay(1000);
+
+	HAL_UART_Transmit(&huart1, "Entered loading pills mode!\n\n", 31, 1000);
+
+	for(uint8_t cell = 0; cell < 7; cell++) {
+		LoadCell(cell);
+
+		//TODO: Move to next cell before loading
+	}
+
+	HAL_UART_Transmit(&huart1, "Loading done! Resuming operation...\n", 37, 1000);
+
+	//Abbiamo finito. Ritorniamo alla modalità RUNNING.
+	appStatus = APPSTATUS_RUNNING;
+}
+
+void LoadCell(uint8_t cell) {
+	char message[40] = {0};
+	sprintf(message, "Loading cell n. %d\n", cell);
+	HAL_UART_Transmit(&huart1, message, strlen(message), 1000);
+	HAL_UART_Transmit(&huart1, "Enter datetime in format dd/MM/yyyy-HH:mm\n", 43, 1000);
 
 
+	//Riceviamo la data tramite seriale
+	struct tm tm;
+	uint8_t datetimeReceived = 0;
 
+	while(datetimeReceived == 0) {
+		if(is_rx_finished == 1) {
+			char format[] = "%d/%m/%Y-%H:%M";
 
+			if (strptime((char*)rxbuffer, format, &tm) == NULL) {
+				HAL_UART_Transmit(&huart1, "Invalid datetime!\n Please re-enter datetime\n", 46, 1000);
+			} else {
+				//Data ricevuta correttamente.
+				datetimeReceived = 1;
+				sprintf(message, "%04d-%02d-%02d %02d:%02d\n",
+						   tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min);
+				HAL_UART_Transmit(&huart1, message, strlen(message), 1000);
+			}
+			UART_ReceiveNextCommand();
+		}
+	}
 
+	//Carichiamo le pillole
+	HAL_UART_Transmit(&huart1, "Please put pills inside the cell. Press enter when done...\n", 60, 1000);
+	while(is_rx_finished == 0);
+	UART_ReceiveNextCommand();
 
-	}//while
-}//EOR
-
-
-
+	sprintf(message, "Done loading cell n. %d!\n\n", cell);
+	HAL_UART_Transmit(&huart1, message, strlen(message), 1000);
+}
 
 /******************************************************************************/
 /*   USER IRQ HANDLER TREATMENT                                               */

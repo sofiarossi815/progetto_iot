@@ -175,16 +175,37 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle){
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 
+	//Gestisci la ricezione di un singolo carattere
+
 	if(huart->Instance==USART1){
-		rx_index++;
-		if(rx_index>=UART_RX_BUFF_END){
-			is_rx_finished=1;
-			rx_index=0;
-			rxbuffer_index=(rxbuffer_index+1)%2;
-		}//if
-		HAL_UART_Receive_IT(&huart1, &rxbuffer[rxbuffer_index][rx_index],1);
+		//Controlla se il carattere ricevuto è un \n. In tal caso
+		//abbiamo ricevuto un intero comando ed impostiamo is_rx_finished = 1
+		//per segnalare tale evento.
+		//
+		// Altrimenti riceviamo il prossimo carattere.
+		if(((char)rxbuffer[rxbuffer_index]) == '\n') {
+			is_rx_finished = 1;
+		} else {
+			rxbuffer_index++;
+			UART_ReceiveNextChar();
+		}
 	}//if
 }//EOR
+
+void UART_ReceiveNextCommand(void)
+{
+	//Ricevi il prossimo comando terminato dal carattere \n
+	//Prima di ricevere il prossimo comando resetta le variabili di stato
+	is_rx_finished = 0;
+	rxbuffer_index = 0;
+	UART_ReceiveNextChar();
+}
+
+void UART_ReceiveNextChar(void)
+{
+	//Ricevi il prossimo carattere sulla porta seriale
+	HAL_UART_Receive_IT(&huart1, &rxbuffer[rxbuffer_index], 1);
+}
 
 
 

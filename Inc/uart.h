@@ -43,7 +43,7 @@
 // *	 	      	EXTERN 					*
 // ==================================================
 extern UART_HandleTypeDef huart1;
-extern uint8_t rxbuffer[2][UART_RX_BUFF_LEN];
+extern uint8_t rxbuffer[UART_RX_BUFF_LEN];
 extern uint8_t rxbuffer_index;
 extern uint16_t rx_index;
 extern uint8_t is_rx_finished;
@@ -54,5 +54,7 @@ extern uint8_t is_tx_finished;
 // ==================================================
 void HAL_UART_MspInit(UART_HandleTypeDef *huart);
 void MX_USARTx_UART_Init(void);
+void UART_ReceiveNextCommand(void);
+void UART_ReceiveNextChar(void);
 
 #endif
