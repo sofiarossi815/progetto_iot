@@ -35,8 +35,8 @@ uint8_t hours_pill[5];
 
 void PillsCheck(){
 	uint16_t distance = vl53l1x_getDistance();
-	sprintf(allarme, "DISTANCE: %d\n\r", distance);
-	HAL_UART_Transmit(&huart1, allarme, 32, 1000);
+//	sprintf(allarme, "DISTANCE: %d\n\r", distance);
+//	HAL_UART_Transmit(&huart1, allarme, 32, 1000);
 	HAL_Delay(1000);
 	if (distance >= 0 && distance <= 32){
 		if (HAL_TIM_PWM_Start(&htim_pwm, TIM_CHANNEL_1) != HAL_OK){
