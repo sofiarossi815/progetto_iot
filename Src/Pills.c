@@ -70,13 +70,77 @@ void ReturnToZero(){
 		}
 }
 
+void ReturnToZero2() {
+	uint16_t distance = 0;
+
+	while(distance >= 18) {
+		distance = vl53l1x_getDistance();
+		char message[10];
+		sprintf(message, "1: %d\n", distance);
+		HAL_UART_Transmit(&huart1, message, strlen(message), 1000);
+		OneStepRotation();
+		HAL_Delay(1000);
+	}
+
+	while(distance <= 18) {
+		distance = vl53l1x_getDistance();
+		char message[10];
+		sprintf(message, "2: %d\n", distance);
+		HAL_UART_Transmit(&huart1, message, strlen(message), 1000);
+		OneStepRotation();
+		HAL_Delay(1000);
+	}
+	for(int i = 0; i < 6; i++) {
+		OneStepRotation();
+	}
+
+	while(distance >= 18) {
+		OneCellRotation();
+		HAL_Delay(2000);
+		distance = vl53l1x_getDistance();
+		char message[10];
+		sprintf(message, "3: %d\n", distance);
+		HAL_UART_Transmit(&huart1, message, strlen(message), 1000);
+	}
+
+	HAL_UART_Transmit(&huart1, "Aligned\n", strlen("Aligned\n"), 1000);
+	HAL_Delay(4000);
+}
+
+void ReturnToZero3() {
+	uint16_t distance = 0;
+
+	uint8_t steps = 0;
+
+	while(steps < 20) {
+		distance = vl53l1x_getDistance();
+		HAL_Delay(300);
+		if(distance >= 7 && distance <= 18) {
+			steps++;
+		} else {
+			steps = 0;
+		}
+//		char message[10];
+//		sprintf(message, "1: %d\n", distance);
+//		HAL_UART_Transmit(&huart1, message, strlen(message), 1000);
+		OneStepRotation();
+	}
+
+	HAL_UART_Transmit(&huart1, "Aligned\n", strlen("Aligned\n"), 1000);
+	HAL_Delay(4000);
+}
+
+void OneStepRotation() {
+	HAL_GPIO_WritePin(STEPPER_PASSO_PORT, STEPPER_PASSO_PIN, GPIO_PIN_SET);
+	HAL_Delay(10);
+	HAL_GPIO_WritePin(STEPPER_PASSO_PORT, STEPPER_PASSO_PIN, GPIO_PIN_RESET);
+	HAL_Delay(10);
+}
+
 // Rotazione 45°
 void OneCellRotation(){
 	for (int j = 0; j < 25; j++) {
-		HAL_GPIO_WritePin(STEPPER_PASSO_PORT, STEPPER_PASSO_PIN, GPIO_PIN_SET);
-		HAL_Delay(10);
-		HAL_GPIO_WritePin(STEPPER_PASSO_PORT, STEPPER_PASSO_PIN, GPIO_PIN_RESET);
-		HAL_Delay(10);
+		OneStepRotation();
 	}
 }
 

@@ -110,6 +110,11 @@ void OnAppStatus_Running_Cycle(void);
 void OnAppStatus_LoadingPills_Cycle(void);
 void OnAppStatus_Refresh_Cycle(void);
 void LoadCell(uint8_t cell);
+//HAL_StatusTypeDef PrintText(char text[]);
+//
+//HAL_StatusTypeDef PrintText(char text[]) {
+//	return HAL_UART_Transmit(&huart1, text, strlen(text), 1000);
+//}
 
 /* Private user code ---------------------------------------------------------*/
 
@@ -238,11 +243,6 @@ int main(void)
 			}//if
 	}
 
-
-	HAL_UART_Transmit(&huart1, rx_data, 32, 1000);
-
-
-
 	//Init variables
 	rx_index=0;
 	is_rx_finished=0;
@@ -254,8 +254,13 @@ int main(void)
 //		/* PWM Generation Error */
 //		Error_Handler();
 //	}//if
+
+	//Mettiamoci in ascolto per eventuali messaggi
+	UART_ReceiveNextCommand();
+
 	// Ciclo di inizializzazione del dispositivo in fase di accensione.
 	OnAppStatus_Init_Cycle();
+
 
 	if (HAL_TIM_PWM_Start(&htim_pwm, TIM_CHANNEL_4) != HAL_OK){
 		/* PWM Generation Error */
@@ -263,8 +268,7 @@ int main(void)
 	}//if
 	//while (1);
 
-	//Mettiamoci in ascolto per eventuali messaggi
-	HAL_UART_Receive_IT(&huart1, &rxbuffer[rxbuffer_index],1);
+
 
 	//Abbiamo finito l'inizializzazione. Cambiamo status in RUNNING
 
@@ -295,7 +299,7 @@ int main(void)
 
 void OnAppStatus_Init_Cycle(void){
 	char menu[40] = {0};
-	ReturnToZero();
+	ReturnToZero3();
 	HAL_Delay(1000);
 	// Esegue un controllo sul contenuto di tutte le celle e se alcune sono ancora piene suona
 	CellsCheck(cellstate);
@@ -319,17 +323,19 @@ void OnAppStatus_Init_Cycle(void){
 	}
 	UntangleCable();
 
-	HAL_UART_Transmit(&huart1, "Tipe: 'LOAD\n' if you want to reload all the cells", 50, 1000);
-	HAL_UART_Transmit(&huart1, "Tipe: 'REFRESH\n' if you want to refresh the timing of the cells", 64, 1000);
-	if(is_rx_finished == 1) {
-		if(strcmp(rxbuffer, "LOAD\n") == 0){
-			appStatus = APPSTATUS_LOADING_PILLS;
-		}
-		else if(strcmp(rxbuffer, "REFRESH\n") == 0){
-			appStatus = APPSTATUS_LOADING_PILLS;
-		}
-		UART_ReceiveNextCommand();
+	HAL_UART_Transmit(&huart1, "Type: 'LOAD' if you want to reload all the cells\n", 50, 1000);
+	HAL_UART_Transmit(&huart1, "Type: 'REFRESH' if you want to refresh the timing of the cells\n", 64, 1000);
+
+	while(is_rx_finished == 0);
+
+	if(strcmp(rxbuffer, "LOAD\n") == 0){
+		appStatus = APPSTATUS_LOADING_PILLS;
 	}
+	else if(strcmp(rxbuffer, "REFRESH\n") == 0){
+		appStatus = APPSTATUS_REFRESH;
+	}
+
+	UART_ReceiveNextCommand();
 }
 
 void OnAppStatus_Running_Cycle(void) {

@@ -17,6 +17,9 @@
 
 void allarm();
 void ReturnToZero();
+void ReturnToZero2();
+void ReturnToZero3();
+void OneStepRotation();
 void OneCellRotation();
 void CellsCheck();
 void UntangleCable();
