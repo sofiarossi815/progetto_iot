@@ -137,7 +137,7 @@ void HAL_MspInit(void)
 // x		     	GPIO_interupt_handler_custom  			x
 // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 void GPIO_interupt_handler_custom(uint32_t pin){
-	is_pressed=1;
+
 }//EOR
 
 

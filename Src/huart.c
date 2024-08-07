@@ -151,11 +151,11 @@ void USARTx_IRQHandler(void)
  *         you can add your own implementation.
  * @retval None
  */
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle){
-	if(UartHandle->Instance==USART1){
-		is_tx_finished=1;
-	}//if
-}//EOR
+//void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle){
+//	if(UartHandle->Instance==USART1){
+//		is_tx_finished=1;
+//	}//if
+//}//EOR
 
 // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 // x		     	HAL_UART_RxCpltCallback  			x
