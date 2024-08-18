@@ -152,6 +152,7 @@ void GPIO_interupt_handler_custom(uint32_t pin){
 void Error_Handler(void)
 {
 	/* User can add his own implementation to report the HAL error return state */
+	HAL_UART_Transmit(&huart1, "Entered ERROR state!\n", 22, 1000);
 	while(1);
 }//EOR
 

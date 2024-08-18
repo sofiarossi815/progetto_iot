@@ -59,6 +59,8 @@ int vl53l1x_init()
 	// Sensor init
 	status = VL53L1X_SensorInit(VL53L1X_DEFAULT_ADDRESS);
 
+	HAL_Delay(250);
+
 	// Set new i2c address
 	if((status = VL53L1X_SetI2CAddress(VL53L1X_DEFAULT_ADDRESS, 0x52)) == VL53L1_ERROR_NONE){
 //		printf("tof[%d] -> new i2c addr: 0x%2X\r\n", j, tof[j].i2c_address);
