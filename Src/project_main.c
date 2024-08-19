@@ -66,7 +66,8 @@ typedef enum _AppStatus {
 	APPSTATUS_INIT, // Stato di inizializzazione
 	APPSTATUS_RUNNING, // Stato di normale funzionamento
 	APPSTATUS_LOADING_PILLS, // Stato di caricamento delle pillole
-	APPSTATUS_REFRESH // Stato di reinserimento degli orari delle celle
+	APPSTATUS_REFRESH, // Stato di reinserimento degli orari delle celle
+	APPSTATUS_TIME // Stato di inserimento di data e ora corrente
 } AppStatus;
 
 
@@ -87,17 +88,13 @@ WakeupSourceConfig_TypeDef WakeupSourceConfig = {0};
 // Variablili per il DS1307
 uint8_t sec, min, hour;
 uint8_t week_day, day, month, year;
-int set_day[7];
-int set_hour[7];
-int set_min[7];
+int set_day[NUM_CELLS];
+int set_hour[NUM_CELLS];
+int set_min[NUM_CELLS];
 char str[32];
 
 // Variabili per il controllo delle celle
-int cellstate[7];
-uint8_t n_empty_cell = 0;
-uint8_t n_filled_cell = 0;
-int index_filled_cell[7];
-int index_empty_cell[7];
+int cellstate[NUM_CELLS];
 char rx_data[32];
 
 // Lo status viene inizializzato a INIT
@@ -109,8 +106,10 @@ void OnAppStatus_Init_Cycle(void);
 void OnAppStatus_Running_Cycle(void);
 void OnAppStatus_LoadingPills_Cycle(void);
 void OnAppStatus_Refresh_Cycle(void);
-void OnAppStatus_Refresh_Cycle2(void);
+void OnAppStatus_Time_Cycle(void);
+void PrintMenu(void);
 void LoadCell(uint8_t cell);
+void LoadTime(uint8_t filled_cell);
 
 
 /* Private user code ---------------------------------------------------------*/
@@ -228,8 +227,6 @@ int main(void)
 	MX_I2Cx_Init();
 	// Inizializza il DS1307
 	rtc_init(0, 1, 0);
-	rtc_set_time(8, 55, 0);
-	rtc_set_date(3, 7, 8, 24);
 
 	HAL_Delay(2000);
 
@@ -266,7 +263,10 @@ int main(void)
 			OnAppStatus_LoadingPills_Cycle();
 			break;
 		case APPSTATUS_REFRESH:
-			OnAppStatus_Refresh_Cycle2();
+			OnAppStatus_Refresh_Cycle();
+			break;
+		case APPSTATUS_TIME:
+			OnAppStatus_Time_Cycle();
 			break;
 		default:
 			//Non deve arrivare qui. Altrimenti c'è qualche problema.
@@ -284,52 +284,53 @@ void OnAppStatus_Init_Cycle(void){
 	HAL_Delay(1000);
 	// Esegue un controllo sul contenuto di tutte le celle
 	CellsCheck(cellstate);
-	int m = 0;
-	int n = 0;
 
-	n_filled_cell = 0;
-	n_empty_cell = 0;
-
-	for (int i = 0; i <= 6; i++) {
+	for (int i = 1; i < NUM_CELLS; i++) {
 		if (cellstate[i] == 1){
 			sprintf(str, "cella %d piena \n\r", i);
 			HAL_UART_Transmit(&huart1, str, 32, 1000);
-			n_filled_cell = n_filled_cell + 1;
-			index_filled_cell[m] = i;
-			index_empty_cell[m] = 0;
-			m = m + 1;
 		}
 		else {
 			sprintf(str, "cella %d vuota \n\r", i);
 			HAL_UART_Transmit(&huart1, str, 32, 1000);
-			n_empty_cell = n_empty_cell + 1 ;
-			index_empty_cell[n] = i;
-			index_filled_cell[n] = 0;
-			n = n + 1;
 		}
 	}
-	UntangleCable();
-
+	GoToCell(0);
 	// L'utente può scegliere a quale modalità di funzionameto accedere
-	HAL_UART_Transmit(&huart1, "Type: 'LOAD' if you want to reload all the cells\n", 50, 1000);
-	HAL_UART_Transmit(&huart1, "Type: 'REFRESH' if you want to refresh the timing of the cells\n", 64, 1000);
-
-	// Aspetto di ricevere un comando
-	while(is_rx_finished == 0);
-	// Controllo il comando
-	if(strcmp(rxbuffer, "LOAD\n") == 0){
-		appStatus = APPSTATUS_LOADING_PILLS;
-	} else if(strcmp(rxbuffer, "REFRESH\n") == 0){
-
-		appStatus = APPSTATUS_REFRESH;
-
-	}
-
-	UART_ReceiveNextCommand();
+	PrintMenu();
 
 }
 
-int previousCell = 0;
+void PrintMenu(void){
+	HAL_UART_Transmit(&huart1, "Type: 'TIME' if you want to set current datetime\n", 50, 1000);
+	HAL_UART_Transmit(&huart1, "Type: 'LOAD' if you want to reload all the cells\n", 50, 1000);
+	HAL_UART_Transmit(&huart1, "Type: 'REFRESH' if you want to refresh the timing of the cells\n", 64, 1000);
+	HAL_UART_Transmit(&huart1, "Type: 'START' if you want to enter running mode\n", 49, 1000);
+
+	int validCommand = 1;
+	// Aspetto di ricevere un comando
+	while(is_rx_finished == 0);
+	// Controllo il comando
+	if(strcmp(rxbuffer, "LOAD") == 0){
+		appStatus = APPSTATUS_LOADING_PILLS;
+	} else if(strcmp(rxbuffer, "REFRESH") == 0){
+		appStatus = APPSTATUS_REFRESH;
+	} else if(strcmp(rxbuffer, "TIME") == 0){
+		appStatus = APPSTATUS_TIME;
+	} else if(strcmp(rxbuffer, "START") == 0){
+		appStatus = APPSTATUS_RUNNING;
+		HAL_UART_Transmit(&huart1, "Entering Running mode!\n", 24, 1000);
+	} else {
+		validCommand = 0;
+	}
+
+	UART_ReceiveNextCommand();
+	if (validCommand == 0){
+		HAL_UART_Transmit(&huart1, "Invalid command\n\n", 19, 1000);
+		PrintMenu();
+	}
+}
+
 // Funzione del normale funzionamento di erogazione delle pillole
 void OnAppStatus_Running_Cycle(void) {
 	// Si ottiene l'orario tramite l'RTC
@@ -337,34 +338,53 @@ void OnAppStatus_Running_Cycle(void) {
 	rtc_get_date(&week_day,&day,&month,&year);
 
 	//Controlla l'orario attuale confrontandolo con quelli inseriti dall'utente
-	for (int i = 0; i < 7 ; i++){
+	for (int i = 1; i < NUM_CELLS ; i++){
 		if (hour == set_hour[i] && min == set_min[i] && sec == 0 && day == set_day[i]) {
 			HAL_Delay(1500);
-			for (uint8_t h = 0; h <= n_filled_cell ; h++){
-				if (i == index_filled_cell[h]){
-					for (uint8_t k = 0; k <= index_filled_cell[h]-previousCell; k++){
-						OneCellRotation();
-					}
-					previousCell = index_filled_cell[h]+1;
-				}
+			if (cellstate[i] == 1){
+				GoToCell(i);
 			}
 		}
 		else if(hour == set_hour[i] && min == set_min[i] && sec != 0 && day == set_day[i]) {
 			HAL_Delay(500);
 			PillsCheck();
 		}
-
 	}
 	// Se l'erogazione è terminata torna nello stato di INIT
-	if (hour == set_hour[6] && min == set_min[6]+4 && day == set_day[6]){
+	if (hour == set_hour[NUM_CELLS-1] && min == set_min[NUM_CELLS-1]+4 && day == set_day[NUM_CELLS-1]){
 		HAL_Delay(1500);
-		HAL_UART_Transmit(&huart1, "End of the running status re-enter initialization", 49, 1000);
+		HAL_UART_Transmit(&huart1, "End of the running status re-enter initialization\n", 49, 1000);
 		appStatus = APPSTATUS_INIT;
 
 	}
 }
 
-uint8_t CurrentLoadingCell = 0;
+void OnAppStatus_Time_Cycle(void){
+	HAL_UART_Transmit(&huart1, "Enter current datetime in format dd/MM/yyyy-HH:mm\n", 51, 1000);
+	//Riceviamo la data tramite seriale
+	struct tm tm;
+	char format[] = "%d/%m/%Y-%H:%M";
+	uint8_t datetimeReceived = 0;
+
+	while(datetimeReceived == 0) {
+		if(is_rx_finished == 1) {
+
+			// Si controlla che l'orario sia stato inserito nel formato corretto
+			if (strptime((char*)rxbuffer, format, &tm) == NULL) {
+				HAL_UART_Transmit(&huart1, "Invalid datetime!\n Please re-enter datetime\n", 46, 1000);
+			} else {
+				//Data ricevuta correttamente
+				datetimeReceived = 1;
+				rtc_set_time((uint8_t)tm.tm_hour, (uint8_t)tm.tm_min, 0);
+				rtc_set_date((uint8_t)tm.tm_wday, (uint8_t)tm.tm_mday, (uint8_t)tm.tm_mon, (uint8_t)(tm.tm_year-2000));
+
+			}
+			UART_ReceiveNextCommand();
+		}
+	}
+	HAL_UART_Transmit(&huart1, "DATETIME set!\n", 15, 1000);
+	PrintMenu();
+}
 
 // Funzione per il caricamento delle celle
 void OnAppStatus_LoadingPills_Cycle(void) {
@@ -372,44 +392,43 @@ void OnAppStatus_LoadingPills_Cycle(void) {
 	HAL_Delay(1000);
 	HAL_UART_Transmit(&huart1, "Entered loading pills mode!\n\n", 31, 1000);
 
-	for(uint8_t cell = 0; cell < 7; cell++) {
-		OneCellRotation();
+	for(uint8_t cell = 1; cell < NUM_CELLS; cell++) {
+		GoToCell(cell);
 		// Funzione per il caricamento della singola cella
 		LoadCell(cell);
+		cellstate[cell] = 1;
 	}
-	OneCellRotation();
+	GoToCell(0);
 	HAL_UART_Transmit(&huart1, "Loading done! Resuming operation...\n", 37, 1000);
-	UntangleCable();
 	HAL_UART_Transmit(&huart1, "The set timings are: \n", 31, 1000);
 
-	for (int j = 0; j < 7; j++){
+	for (int j = 1; j < NUM_CELLS; j++){
 		sprintf(str, "Cell n. %d : %02d:%02d\n", j, set_hour[j], set_min[j]);
 		HAL_UART_Transmit(&huart1, str, strlen(str), 1000);
-
 	}
-	//Abbiamo finito. Ritorniamo alla modalità RUNNING.
-	int index_filled_cell[7] = {0, 1 , 2, 3, 4, 5, 6};
-	appStatus = APPSTATUS_RUNNING;
+
+	HAL_UART_Transmit(&huart1, "Done! \n", 8, 1000);
+	//Abbiamo finito. Stampiamo il menu
+    PrintMenu();
 }
 
 
 // Funzione per il reinserimento degli orari nelle celle ancora piene al riavvio
 void OnAppStatus_Refresh_Cycle(void){
 	HAL_Delay(1000);
-		HAL_UART_Transmit(&huart1, "Entered refresh cells timing mode!\n\n", 38, 1000);
+	HAL_UART_Transmit(&huart1, "Entered refresh cells timing mode!\n\n", 38, 1000);
 
-		for(uint8_t j = 0; j < 7; j++) {
-			OneCellRotation();
-			if(cellstate[j] == 1) {
-				LoadTime(j);
-			}
+	for(uint8_t cell = 1; cell < NUM_CELLS; cell++) {
+		if(cellstate[cell] == 1) {
+			GoToCell(cell);
+			LoadTime(cell);
 		}
-
-		HAL_UART_Transmit(&huart1, "Done! Resuming operation...\n", 29, 1000);
-		ReturnToZero();
-		UntangleCable();
-		//Abbiamo finito. Ritorniamo alla modalità RUNNING.
-		appStatus = APPSTATUS_RUNNING;
+	}
+	// Necessario per UntangleCable
+	GoToCell(0);
+	HAL_UART_Transmit(&huart1, "Done! \n", 8, 1000);
+	//Abbiamo finito. Stampiamo il menu
+    PrintMenu();
 }
 
 
@@ -443,7 +462,6 @@ void LoadTime(uint8_t filled_cell) {
 			UART_ReceiveNextCommand();
 		}
 	}
-
 	//Passiamo alla cella successiva
 	HAL_UART_Transmit(&huart1, "Press enter when done...\n", 60, 1000);
 	while(is_rx_finished == 0);

@@ -185,6 +185,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 		// Altrimenti riceviamo il prossimo carattere.
 		if(((char)rxbuffer[rxbuffer_index]) == '\n') {
 			is_rx_finished = 1;
+			rxbuffer[rxbuffer_index] = 0; // sostituisce il carattere \n con 0 (endcarachter di string)
 		} else {
 			rxbuffer_index++;
 			UART_ReceiveNextChar();
@@ -192,8 +193,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	}//if
 }//EOR
 
-void UART_ReceiveNextCommand(void)
-{
+void UART_ReceiveNextCommand(void){
 	//Ricevi il prossimo comando terminato dal carattere \n
 	//Prima di ricevere il prossimo comando resetta le variabili di stato
 	is_rx_finished = 0;
@@ -201,8 +201,7 @@ void UART_ReceiveNextCommand(void)
 	UART_ReceiveNextChar();
 }
 
-void UART_ReceiveNextChar(void)
-{
+void UART_ReceiveNextChar(void){
 	//Ricevi il prossimo carattere sulla porta seriale
 	HAL_UART_Receive_IT(&huart1, &rxbuffer[rxbuffer_index], 1);
 }

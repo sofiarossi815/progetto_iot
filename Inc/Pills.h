@@ -15,12 +15,14 @@
 #include "rf_driver_hal_tim.h"
 #include "vl53l1x.h"
 
-void ReturnToZero();
-void OneStepRotation();
-void OneCellRotation();
-void CellsCheck();
-void UntangleCable();
-void PillsCheck();
+#define NUM_CELLS 8
+
+void GoToCell(int cell);
+void ReturnToZero(void);
+void OneStepRotation(void);
+void OneCellRotation(void);
+void CellsCheck(int cellarray[]);
+void PillsCheck(void);
 
 
 #endif /* INC_PILLS_H_ */
