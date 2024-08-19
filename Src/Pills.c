@@ -26,13 +26,9 @@
 // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 // Variables
-uint8_t hour_pill = 18;
-uint8_t min_pill = 20;
 char allarme[32];
-uint8_t hours_pill[5];
 
-
-
+// Esegue il controllo della cella e se questa è piena fa suonare l'allarme per un minuto
 void PillsCheck(){
 	uint16_t distance = vl53l1x_getDistance();
 //	sprintf(allarme, "DISTANCE: %d\n\r", distance);
@@ -51,26 +47,27 @@ void PillsCheck(){
 
 }
 
-// Riporta il motore alla posizione originale quando il dispositivo viene collegato all'alimetazione
+// Riporta il motore alla posizione originale
 void ReturnToZero(){
 	int i = 0;
 	int stop = 0;
-		while(stop == 0){
-			HAL_GPIO_WritePin(STEPPER_PASSO_PORT, STEPPER_PASSO_PIN, GPIO_PIN_SET);
-			HAL_Delay(10);
-			HAL_GPIO_WritePin(STEPPER_PASSO_PORT, STEPPER_PASSO_PIN, GPIO_PIN_RESET);
-			HAL_Delay(100);
-			if (HAL_GPIO_ReadPin(STEPPER_ZERO_PORT, STEPPER_ZERO_PIN)==1){
-							stop = 1;
-			}
-			i = i+1;
-			if (i == 200 || i == 400 || i == 600){
-				UntangleCable();
-			}
+	while(stop == 0){
+		HAL_GPIO_WritePin(STEPPER_PASSO_PORT, STEPPER_PASSO_PIN, GPIO_PIN_SET);
+		HAL_Delay(10);
+		HAL_GPIO_WritePin(STEPPER_PASSO_PORT, STEPPER_PASSO_PIN, GPIO_PIN_RESET);
+		HAL_Delay(100);
+		if (HAL_GPIO_ReadPin(STEPPER_ZERO_PORT, STEPPER_ZERO_PIN)==1){
+						stop = 1;
 		}
+		i = i+1;
+		if (i == 200 || i == 400 || i == 600){
+			UntangleCable();
+		}
+	}
+	OneStepRotation();
 }
 
-
+// Esegue una rotazione di 1.8°
 void OneStepRotation() {
 	HAL_GPIO_WritePin(STEPPER_PASSO_PORT, STEPPER_PASSO_PIN, GPIO_PIN_SET);
 	HAL_Delay(10);
@@ -85,7 +82,7 @@ void OneCellRotation(){
 	}
 }
 
-// Controllo del contenuto di tutte le celle
+// Controlla il contenuto di tutte le celle
 void CellsCheck(int  cellarray[]){
 	char str[32];
 	uint16_t distance;
@@ -96,7 +93,7 @@ void CellsCheck(int  cellarray[]){
 			HAL_Delay(1000);
 			sprintf(str, "DISTANCE: %d\n\r", distance);
 			HAL_UART_Transmit(&huart1, str, 32, 1000);
-			if (distance == 0 && distance <= 32){
+			if (distance >= 0 && distance <= 32){
 				cellarray[i] = 1;
 			}
 			else {
@@ -106,6 +103,7 @@ void CellsCheck(int  cellarray[]){
 		}
 }
 
+// Inverte il verso di rotazione del motore ed esegue un giro completo
 void UntangleCable(){
 	HAL_GPIO_WritePin(STEPPER_DIR_PORT, STEPPER_DIR_PIN, GPIO_PIN_SET);
 	HAL_Delay(2);
@@ -119,10 +117,3 @@ void UntangleCable(){
 	HAL_Delay(2);
 }
 
-void LoadingCells(){
-	if (HAL_GPIO_ReadPin(SW2_PORT, SW2_PIN)==1){
-		HAL_Delay(1000);
-		OneCellRotation();
-
-	}
-}

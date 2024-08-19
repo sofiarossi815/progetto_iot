@@ -15,15 +15,12 @@
 #include "rf_driver_hal_tim.h"
 #include "vl53l1x.h"
 
-void allarm();
 void ReturnToZero();
-void ReturnToZero2();
-void ReturnToZero3();
 void OneStepRotation();
 void OneCellRotation();
 void CellsCheck();
 void UntangleCable();
 void PillsCheck();
-void LoadingCells();
+
 
 #endif /* INC_PILLS_H_ */
