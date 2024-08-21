@@ -29,6 +29,7 @@
 
 static int currentCell = 0; // può essere modificato solo in questo file
 
+// Funzione che permette di andare alla cella numero cell
 void GoToCell(int cell) {
 	if(cell == 0) {
 		ReturnToZero();
@@ -50,7 +51,7 @@ void PillsCheck(void){
 //	sprintf(allarme, "DISTANCE: %d\n\r", distance);
 //	HAL_UART_Transmit(&huart1, allarme, 32, 1000);
 	HAL_Delay(1000);
-	if (distance == 0 && distance <= 32){
+	if (distance >= 0 && distance < 24){
 		if (HAL_TIM_PWM_Start(&htim_pwm, TIM_CHANNEL_1) != HAL_OK){
 			/* PWM Generation Error */
 			Error_Handler();
@@ -65,6 +66,7 @@ void PillsCheck(void){
 // Riporta il motore alla posizione originale
 void ReturnToZero(void){
 	int stop = 0;
+	// Invertiamo il senso di rotazione in modo tale da sbrogliare il cavo del sensore ToF
 	HAL_GPIO_WritePin(STEPPER_DIR_PORT, STEPPER_DIR_PIN, GPIO_PIN_SET);
 	HAL_Delay(2);
 	while(stop == 0){
@@ -77,6 +79,7 @@ void ReturnToZero(void){
 		}
 	}
 	OneStepRotation();
+	// Dopo essere tornato alla cella 0 imposta a 0 currentCell
 	currentCell = 0;
 	HAL_GPIO_WritePin(STEPPER_DIR_PORT, STEPPER_DIR_PIN, GPIO_PIN_RESET);
 	HAL_Delay(2);
@@ -93,6 +96,7 @@ void OneStepRotation(void) {
 // Rotazione 45°
 void OneCellRotation(void){
 	// Siamo già sull'ultima cella. Non ruotare!
+	// L'unico modo per tornare alla cella 0 è il return to zero
 	if(currentCell == NUM_CELLS - 1) {
 		return;
 	}
@@ -100,6 +104,7 @@ void OneCellRotation(void){
 	for (int j = 0; j < 25; j++) {
 		OneStepRotation();
 	}
+	// Aggiorna il valore della cella corrente
 	currentCell++;
 }
 
@@ -107,14 +112,14 @@ void OneCellRotation(void){
 void CellsCheck(int cellarray[]){
 	char str[32];
 	uint16_t distance;
-	for (int i = 0; i < 8; i++) {
+	for (int i = 1; i < NUM_CELLS; i++) {
 		OneCellRotation();
-		HAL_Delay(2000);
+		HAL_Delay(3000);
 		distance = vl53l1x_getDistance();
 		HAL_Delay(1000);
 		sprintf(str, "DISTANCE: %d\n", distance);
 		HAL_UART_Transmit(&huart1, str, 32, 1000);
-		if (distance >= 0 && distance <= 32){
+		if (distance >= 0 && distance < 24){
 			cellarray[i] = 1;
 		}
 		else {

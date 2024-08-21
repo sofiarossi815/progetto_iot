@@ -279,19 +279,19 @@ int main(void)
 // Funzione di inizializzazione
 void OnAppStatus_Init_Cycle(void){
 	HAL_UART_Transmit(&huart1, "Starting initialization\n", 25, 1000);
-
+	// Cerca la cella di riverimento (n°0)
 	ReturnToZero();
-	HAL_Delay(1000);
+	HAL_Delay(3000);
 	// Esegue un controllo sul contenuto di tutte le celle
 	CellsCheck(cellstate);
 
 	for (int i = 1; i < NUM_CELLS; i++) {
 		if (cellstate[i] == 1){
-			sprintf(str, "cella %d piena \n\r", i);
+			sprintf(str, "cella %d piena (%d)\n\r", i, cellstate[i]);
 			HAL_UART_Transmit(&huart1, str, 32, 1000);
 		}
 		else {
-			sprintf(str, "cella %d vuota \n\r", i);
+			sprintf(str, "cella %d vuota (%d)\n\r", i, cellstate[i]);
 			HAL_UART_Transmit(&huart1, str, 32, 1000);
 		}
 	}
@@ -307,6 +307,7 @@ void PrintMenu(void){
 	HAL_UART_Transmit(&huart1, "Type: 'REFRESH' if you want to refresh the timing of the cells\n", 64, 1000);
 	HAL_UART_Transmit(&huart1, "Type: 'START' if you want to enter running mode\n", 49, 1000);
 
+	// Flag per il controllo del comando
 	int validCommand = 1;
 	// Aspetto di ricevere un comando
 	while(is_rx_finished == 0);
@@ -321,10 +322,13 @@ void PrintMenu(void){
 		appStatus = APPSTATUS_RUNNING;
 		HAL_UART_Transmit(&huart1, "Entering Running mode!\n", 24, 1000);
 	} else {
+		// comando non valido
 		validCommand = 0;
 	}
 
 	UART_ReceiveNextCommand();
+
+	// Ristampa il menu in caso di errore
 	if (validCommand == 0){
 		HAL_UART_Transmit(&huart1, "Invalid command\n\n", 19, 1000);
 		PrintMenu();
@@ -341,6 +345,7 @@ void OnAppStatus_Running_Cycle(void) {
 	for (int i = 1; i < NUM_CELLS ; i++){
 		if (hour == set_hour[i] && min == set_min[i] && sec == 0 && day == set_day[i]) {
 			HAL_Delay(1500);
+			// Se la cella è piena
 			if (cellstate[i] == 1){
 				GoToCell(i);
 			}
@@ -351,30 +356,39 @@ void OnAppStatus_Running_Cycle(void) {
 		}
 	}
 	// Se l'erogazione è terminata torna nello stato di INIT
-	if (hour == set_hour[NUM_CELLS-1] && min == set_min[NUM_CELLS-1]+4 && day == set_day[NUM_CELLS-1]){
+	if (hour == set_hour[NUM_CELLS-1] && min == set_min[NUM_CELLS-1]+2 && day == set_day[NUM_CELLS-1] && cellstate[NUM_CELLS-1] == 1){
 		HAL_Delay(1500);
 		HAL_UART_Transmit(&huart1, "End of the running status re-enter initialization\n", 49, 1000);
 		appStatus = APPSTATUS_INIT;
-
+	} else if (cellstate[NUM_CELLS-1]==0){
+		for (int j = NUM_CELLS-2 ; j > 0; j--){
+			if (hour >= set_hour[j] && min >= set_min[j]+3 && day == set_day[j] && cellstate[j] == 1){
+				HAL_Delay(1500);
+				HAL_UART_Transmit(&huart1, "End of the running status re-enter initialization\n", 49, 1000);
+				appStatus = APPSTATUS_INIT;
+			}
+		}
 	}
 }
 
 void OnAppStatus_Time_Cycle(void){
 	HAL_UART_Transmit(&huart1, "Enter current datetime in format dd/MM/yyyy-HH:mm\n", 51, 1000);
 	//Riceviamo la data tramite seriale
+	// é una strutturs che contiene al suo interno data e ora divisi per elementi secondo la struttura format
 	struct tm tm;
 	char format[] = "%d/%m/%Y-%H:%M";
 	uint8_t datetimeReceived = 0;
 
 	while(datetimeReceived == 0) {
+		// Se è finita la ricezione tramite UART controlla la stringa ricevuta
 		if(is_rx_finished == 1) {
-
 			// Si controlla che l'orario sia stato inserito nel formato corretto
 			if (strptime((char*)rxbuffer, format, &tm) == NULL) {
 				HAL_UART_Transmit(&huart1, "Invalid datetime!\n Please re-enter datetime\n", 46, 1000);
 			} else {
 				//Data ricevuta correttamente
 				datetimeReceived = 1;
+				// La comunica al modulo RTC convertendo i dati in uint8_t
 				rtc_set_time((uint8_t)tm.tm_hour, (uint8_t)tm.tm_min, 0);
 				rtc_set_date((uint8_t)tm.tm_wday, (uint8_t)tm.tm_mday, (uint8_t)tm.tm_mon, (uint8_t)(tm.tm_year-2000));
 
@@ -398,6 +412,7 @@ void OnAppStatus_LoadingPills_Cycle(void) {
 		LoadCell(cell);
 		cellstate[cell] = 1;
 	}
+	// Ritorna alla cella n°0 e sbroglia i cavi
 	GoToCell(0);
 	HAL_UART_Transmit(&huart1, "Loading done! Resuming operation...\n", 37, 1000);
 	HAL_UART_Transmit(&huart1, "The set timings are: \n", 31, 1000);
@@ -452,9 +467,11 @@ void LoadTime(uint8_t filled_cell) {
 			} else {
 				//Data ricevuta correttamente
 				datetimeReceived = 1;
+				// Inserisce gli orari di erogazione delle pillole nei vettori corrispondenti
 				set_day[filled_cell] = tm.tm_mday;
 				set_hour[filled_cell] = tm.tm_hour;
 				set_min[filled_cell] = tm.tm_min;
+				// Ristampa su reisale l'orario inserito
 				sprintf(message, "%04d-%02d-%02d %02d:%02d\n",
 						   tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min);
 				HAL_UART_Transmit(&huart1, message, strlen(message), 1000);
